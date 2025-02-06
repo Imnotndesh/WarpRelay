@@ -44,6 +44,7 @@ func StartServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", helloHandler())
 	for killServer != true {
+		log.Println("Starting simpleServer...")
 		if err := http.ListenAndServe(":9080", mux); err != nil {
 			log.Panicln("Cannot start server rn")
 		}

@@ -1,0 +1,6 @@
+proxyPort: "7080"
+endpoints:
+  - backendUrl : http://0.0.0.0:9080
+    proxyEndpoint : /hello
+  - backendUrl: http://0.0.0.0:10080
+    proxyEndpoint: /sample

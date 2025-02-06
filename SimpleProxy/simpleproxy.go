@@ -1,9 +1,14 @@
 package SimpleProxy
 
 import (
+	"awesomeProject/ConfigParser"
 	"io"
 	"log"
 	"net/http"
+)
+
+const (
+	configLocation = "./Config/config.YAML"
 )
 
 func sampleRevProxy(w http.ResponseWriter, r *http.Request) {
@@ -32,9 +37,19 @@ func sampleRevProxy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func StartProxy() {
-	http.HandleFunc("/", sampleRevProxy)
-	err := http.ListenAndServe(":7080", nil)
+	parser := ConfigParser.ConfigParser{
+		ConfigLocation: configLocation,
+	}
+	err := parser.ParseConfig()
 	if err != nil {
+		log.Println("Cannot parse config:", err)
 		return
+	}
+	port := parser.GetProxyPort()
+	http.HandleFunc("/", sampleRevProxy)
+	log.Println("Starting proxy on port ", port)
+	err = http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Panicln("Cannot start proxy:", err)
 	}
 }
