@@ -15,18 +15,18 @@ import (
 	"os"
 )
 
-type endpointConfig struct {
-	backendUrl    string `yaml:"backendUrl"`
-	proxyEndpoint string `yaml:"proxyEndpoint"`
-	parsedUrl     *url.URL
+type EndpointConfig struct {
+	BackendUrl    string `yaml:"backendUrl"`
+	ProxyEndpoint string `yaml:"proxyEndpoint"`
+	ParsedUrl     *url.URL
 }
-type content struct {
+type Content struct {
 	ProxyPort string           `yaml:"proxyPort"`
-	Endpoints []endpointConfig `yaml:"endpoints"`
+	Endpoints []EndpointConfig `yaml:"endpoints"`
 }
 type ConfigParser struct {
 	ConfigLocation string
-	YamlContent    content
+	YamlContent    Content
 }
 
 func (p *ConfigParser) ParseConfig() error {
@@ -43,6 +43,6 @@ func (p *ConfigParser) ParseConfig() error {
 func (p *ConfigParser) GetProxyPort() string {
 	return p.YamlContent.ProxyPort
 }
-func (p *ConfigParser) GetEndpoints() []endpointConfig {
+func (p *ConfigParser) GetEndpoints() []EndpointConfig {
 	return p.YamlContent.Endpoints
 }

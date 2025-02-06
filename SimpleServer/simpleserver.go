@@ -23,9 +23,9 @@ func helloHandler() http.HandlerFunc {
 	}
 }
 func sayHello(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Hello User"))
+	_, err := w.Write([]byte("Hello World"))
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 	}
 }
 func sayHelloWithName(w http.ResponseWriter, r *http.Request) {

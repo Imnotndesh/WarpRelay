@@ -2,51 +2,77 @@ package SimpleProxy
 
 import (
 	"awesomeProject/ConfigParser"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 )
 
 const (
 	configLocation = "./Config/config.YAML"
 )
 
-func sampleRevProxy(w http.ResponseWriter, r *http.Request) {
-	backend := "http://0.0.0.0:9080" + r.URL.Path
-	newRequest, err := http.NewRequest(r.Method, backend, r.Body)
-	if err != nil {
-		log.Panicln("Cannot create request:", err)
-		return
+var (
+	proxies = make(map[string]*httputil.ReverseProxy)
+)
+
+func removePrefix(path, prefix string) string {
+	newPath := strings.TrimPrefix(path, prefix)
+	if newPath == "" {
+		return "/"
 	}
-	client := &http.Client{}
-	backendResp, err := client.Do(newRequest)
-	if err != nil {
-		log.Panicln("Cannot make request:", err)
-		return
-	}
-	defer backendResp.Body.Close()
-	for key, values := range backendResp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
-		}
-	}
-	w.WriteHeader(backendResp.StatusCode)
-	_, err = io.Copy(w, backendResp.Body)
-	if err != nil {
-		return
-	}
+	log.Println(newPath)
+	return newPath
 }
 func StartProxy() {
+	var err error
 	parser := ConfigParser.ConfigParser{
 		ConfigLocation: configLocation,
 	}
-	err := parser.ParseConfig()
+	err = parser.ParseConfig()
 	if err != nil {
 		log.Println("Cannot parse config:", err)
 		return
 	}
+	// Port from YAML
 	port := parser.GetProxyPort()
-	http.HandleFunc("/", sampleRevProxy)
+	// User endpoints from YAML
+	endpoints := parser.GetEndpoints()
+
+	// ReverseProxy for each entry
+	for i := range endpoints {
+		var backendURL *url.URL
+		endpoint := &endpoints[i]
+		backendURL, err = url.Parse(endpoint.BackendUrl)
+		if err != nil {
+			log.Fatalf("Cannot parse url for %s: %v. Check Config!", endpoint.ProxyEndpoint, err)
+			return
+		}
+		endpoint.ParsedUrl = backendURL
+		proxy := httputil.NewSingleHostReverseProxy(backendURL)
+		proxies[endpoint.ProxyEndpoint] = proxy
+		proxy.Director = func(req *http.Request) {
+			req.URL.Scheme = endpoint.ParsedUrl.Scheme
+			req.URL.Host = endpoint.ParsedUrl.Host
+			req.Host = endpoint.ParsedUrl.Host
+
+			req.URL.Path = strings.TrimPrefix(req.URL.Path, endpoint.ProxyEndpoint)
+			req.URL.Path = "/" + strings.TrimPrefix(req.URL.Path, "/")
+			log.Printf("Forwarding request to: %s%s", endpoint.ParsedUrl, req.URL.Path)
+			if len(req.URL.Path) == 0 {
+				req.URL.Path = "/"
+			}
+			req.Header.Set("X-Forwarded-For", req.Header.Get("X-Forwarded-For")+","+req.RemoteAddr)
+		}
+		proxyPath := endpoint.ProxyEndpoint
+		log.Printf("Proxy set for %s -> %s", proxyPath, endpoint.BackendUrl)
+		http.HandleFunc(proxyPath+"/", func(w http.ResponseWriter, r *http.Request) {
+			proxies[proxyPath].ServeHTTP(w, r)
+		})
+	}
+
+	// Start reverse proxy server
 	log.Println("Starting proxy on port ", port)
 	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
