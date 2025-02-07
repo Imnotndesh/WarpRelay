@@ -4,22 +4,55 @@ import (
 	"awesomeProject/ConfigParser"
 	"awesomeProject/SimpleServer"
 	"crypto/tls"
+	"fmt"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
 const (
+	configDir      = "Config"
 	configLocation = "./Config/config.YAML"
+	logsDir        = "Logs"
 )
+
+func init() {
+	// Check if Config Dir exists
+	if _, err := os.Stat(configLocation); os.IsNotExist(err) {
+		if err = os.Mkdir(configDir, 0755); err != nil {
+			panic("Error making config directory")
+		}
+		panic("Config Not found..Please your config.YAML in the config directory")
+	}
+	// Check if Logs dir exists and init Logs
+	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
+		if err = os.Mkdir(logsDir, 0755); err != nil {
+			log.Fatalf("Failed to create logs directory: %s", err)
+		}
+	}
+}
 
 var (
 	proxies = make(map[string]*httputil.ReverseProxy)
 )
 
+func SetupLogger() {
+	log.SetOutput(&lumberjack.Logger{
+		Filename:   filepath.Join(logsDir, "proxy.log"),
+		MaxSize:    10,
+		MaxBackups: 5,
+		MaxAge:     30,
+		Compress:   true,
+	})
+}
 func StartProxy() {
+	fmt.Println("\n -> Logger Initialized in logs directory")
+	log.Println("Starting Reverse Proxy Server")
 	var err error
 	parser := ConfigParser.ConfigParser{
 		ConfigLocation: configLocation,
@@ -82,9 +115,8 @@ func StartProxy() {
 			proxies[proxyPath].ServeHTTP(w, r)
 		})
 	}
-
+	fmt.Println(" -> Running Server at port :" + port)
 	// Start reverse proxy server
-	log.Println("Starting proxy on port ", port)
 	err = http.ListenAndServeTLS(":"+port, SimpleServer.CertLocation, SimpleServer.KeyLocation, nil)
 	if err != nil {
 		log.Panicln("Cannot start proxy:", err)

@@ -3,6 +3,7 @@ package main
 import (
 	"awesomeProject/SimpleProxy"
 	"awesomeProject/SimpleServer"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -11,9 +12,26 @@ var (
 	wg sync.WaitGroup
 )
 
-// TODO: Add a custom logger that writes to file in /logs dir
+func Spinner(seconds int) {
+	frames := []string{".", "..", "...", "...."}
+	i := 0
+	endTime := time.Now().Add(time.Duration(seconds) * time.Second)
+
+	for time.Now().Before(endTime) {
+		fmt.Printf("\r %s ", frames[i])
+		i = (i + 1) % len(frames)
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func main() {
-	wg.Add(3)
+	fmt.Println("( WarpRelay Proxy )")
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		SimpleProxy.SetupLogger()
+	}()
+	Spinner(2)
 	// Simple servers to test out proxy
 	go func() {
 		defer SimpleServer.StopServer()
@@ -25,20 +43,10 @@ func main() {
 		defer SimpleServer.StopServer()
 		SimpleServer.StartServer(":9081", "Hello World at 9081", true)
 	}()
-	time.Sleep(2 * time.Second)
-
 	// Proxy goroutine
 	go func() {
 		defer wg.Done()
 		SimpleProxy.StartProxy()
 	}()
 	wg.Wait()
-
-	// For debug purposes
-	//wg.Add(1)
-	//go func() {
-	//	defer wg.Done()
-	//	SimpleServer.StartServer()
-	//}()
-	//SimpleProxy.StartProxy()
 }
