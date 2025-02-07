@@ -2,6 +2,8 @@ package SimpleProxy
 
 import (
 	"awesomeProject/ConfigParser"
+	"awesomeProject/SimpleServer"
+	"crypto/tls"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -17,14 +19,6 @@ var (
 	proxies = make(map[string]*httputil.ReverseProxy)
 )
 
-func removePrefix(path, prefix string) string {
-	newPath := strings.TrimPrefix(path, prefix)
-	if newPath == "" {
-		return "/"
-	}
-	log.Println(newPath)
-	return newPath
-}
 func StartProxy() {
 	var err error
 	parser := ConfigParser.ConfigParser{
@@ -51,6 +45,9 @@ func StartProxy() {
 		}
 		endpoint.ParsedUrl = backendURL
 		proxy := httputil.NewSingleHostReverseProxy(backendURL)
+		proxy.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 		proxies[endpoint.ProxyEndpoint] = proxy
 		proxy.Director = func(req *http.Request) {
 			req.URL.Scheme = endpoint.ParsedUrl.Scheme
@@ -63,7 +60,7 @@ func StartProxy() {
 			if len(req.URL.Path) == 0 {
 				req.URL.Path = "/"
 			}
-			req.Header.Set("X-Forwarded-For", req.Header.Get("X-Forwarded-For")+","+req.RemoteAddr)
+			// req.Header.Set("X-Forwarded-For", req.Header.Get("X-Forwarded-For")+","+req.RemoteAddr)
 		}
 		proxyPath := endpoint.ProxyEndpoint
 		log.Printf("Proxy set for %s -> %s", proxyPath, endpoint.BackendUrl)
@@ -74,7 +71,7 @@ func StartProxy() {
 
 	// Start reverse proxy server
 	log.Println("Starting proxy on port ", port)
-	err = http.ListenAndServe(":"+port, nil)
+	err = http.ListenAndServeTLS(":"+port, SimpleServer.CertLocation, SimpleServer.KeyLocation, nil)
 	if err != nil {
 		log.Panicln("Cannot start proxy:", err)
 	}

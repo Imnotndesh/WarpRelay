@@ -6,6 +6,12 @@ import (
 	"net/http"
 )
 
+// Cert Locations for HTTPS
+const (
+	CertLocation = "./Certs/server.crt"
+	KeyLocation  = "./Certs/server.key"
+)
+
 var (
 	killServer bool
 )
@@ -70,10 +76,10 @@ func StartServer(port, message string, secure ...bool) {
 	runInSecureMode := secure[0]
 	if runInSecureMode != false {
 		// HTTPS simple server
-		mux.HandleFunc("/hello", secureHelloHandler(message))
+		mux.HandleFunc("/secure-hello", secureHelloHandler(message))
 		for killServer != true {
 			log.Println("Starting secure server")
-			if err := http.ListenAndServeTLS(port, "./Certs/server.crt", "./Certs/server.key", mux); err != nil {
+			if err := http.ListenAndServeTLS(port, CertLocation, KeyLocation, mux); err != nil {
 				log.Panicln("Cannot start secure server: ", err)
 			}
 		}
