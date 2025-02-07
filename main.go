@@ -13,11 +13,16 @@ var (
 
 func main() {
 	// Launch a goroutine for the reverse proxy and the simple server
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer SimpleServer.StopServer()
 		defer wg.Done()
-		SimpleServer.StartServer()
+		SimpleServer.StartServer(":9080", "Hello World at 9080")
+	}()
+	go func() {
+		defer wg.Done()
+		defer SimpleServer.StopServer()
+		SimpleServer.StartServer(":9081", "Hello World at 9081")
 	}()
 	time.Sleep(2 * time.Second)
 	go func() {

@@ -2,3 +2,5 @@ proxyPort: "7080"
 endpoints:
   - backendUrl : http://localhost:9080
     proxyEndpoint : /sample
+  - backendUrl: http://localhost:9081
+    proxyEndpoint: /another

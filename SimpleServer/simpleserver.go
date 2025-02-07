@@ -9,21 +9,24 @@ var (
 	killServer bool
 )
 
-func helloHandler() http.HandlerFunc {
+func helloHandler(message string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			sayHelloWithName(w, r)
 		case http.MethodGet:
-			sayHello(w, r)
+			sayHello(w, r, message)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 	}
 }
-func sayHello(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Hello World"))
+func sayHello(w http.ResponseWriter, r *http.Request, message string) {
+	if message == "" {
+		message = "Hello World"
+	}
+	_, err := w.Write([]byte(message))
 	if err != nil {
 		log.Println(err)
 	}
@@ -40,12 +43,12 @@ func sayHelloWithName(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func StartServer() {
+func StartServer(port, message string) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/hello", helloHandler())
+	mux.HandleFunc("/hello", helloHandler(message))
 	for killServer != true {
 		log.Println("Starting simpleServer...")
-		if err := http.ListenAndServe(":9080", mux); err != nil {
+		if err := http.ListenAndServe(port, mux); err != nil {
 			log.Panicln("Cannot start server rn")
 		}
 	}
