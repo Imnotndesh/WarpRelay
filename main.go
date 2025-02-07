@@ -2,7 +2,6 @@ package main
 
 import (
 	"awesomeProject/SimpleProxy"
-	"awesomeProject/SimpleServer"
 	"fmt"
 	"sync"
 	"time"
@@ -24,6 +23,7 @@ func Spinner(seconds int) {
 	}
 }
 
+// TODO: Maybe add a flags system to maybe set the config location and preferred logs location
 func main() {
 	fmt.Println("( WarpRelay Proxy )")
 	wg.Add(4)
@@ -32,17 +32,6 @@ func main() {
 		SimpleProxy.SetupLogger()
 	}()
 	Spinner(2)
-	// Simple servers to test out proxy
-	go func() {
-		defer SimpleServer.StopServer()
-		defer wg.Done()
-		SimpleServer.StartServer(":9080", "Hello World at 9080", false)
-	}()
-	go func() {
-		defer wg.Done()
-		defer SimpleServer.StopServer()
-		SimpleServer.StartServer(":9081", "Hello World at 9081", true)
-	}()
 	// Proxy goroutine
 	go func() {
 		defer wg.Done()

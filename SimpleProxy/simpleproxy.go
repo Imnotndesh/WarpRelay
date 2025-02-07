@@ -2,7 +2,6 @@ package SimpleProxy
 
 import (
 	"awesomeProject/ConfigParser"
-	"awesomeProject/SimpleServer"
 	"crypto/tls"
 	"fmt"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -19,6 +18,9 @@ const (
 	configDir      = "Config"
 	configLocation = "./Config/config.YAML"
 	logsDir        = "Logs"
+	CertsDir       = "Certs"
+	CertLocation   = "./Certs/server.crt"
+	KeyLocation    = "./Certs/server.key"
 )
 
 func init() {
@@ -33,6 +35,17 @@ func init() {
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
 		if err = os.Mkdir(logsDir, 0755); err != nil {
 			log.Fatalf("Failed to create logs directory: %s", err)
+		}
+	}
+	if _, err := os.Stat(CertsDir); os.IsNotExist(err) {
+		err = os.Mkdir(CertsDir, 0755)
+		if err != nil {
+			panic("Failed to create certs directory")
+		}
+		_, noCert := os.Stat(CertLocation)
+		_, noKey := os.Stat(KeyLocation)
+		if os.IsNotExist(noCert) || os.IsNotExist(noKey) {
+			panic("SSL Certificates needed to run server. please place the *.key and *.crt in the Certs directory")
 		}
 	}
 }
@@ -117,7 +130,7 @@ func StartProxy() {
 	}
 	fmt.Println(" -> Running Server at port :" + port)
 	// Start reverse proxy server
-	err = http.ListenAndServeTLS(":"+port, SimpleServer.CertLocation, SimpleServer.KeyLocation, nil)
+	err = http.ListenAndServeTLS(":"+port, CertLocation, KeyLocation, nil)
 	if err != nil {
 		log.Panicln("Cannot start proxy:", err)
 	}
