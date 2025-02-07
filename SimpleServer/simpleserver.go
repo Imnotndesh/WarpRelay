@@ -1,6 +1,7 @@
 package SimpleServer
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -16,6 +17,17 @@ func helloHandler(message string) http.HandlerFunc {
 			sayHelloWithName(w, r)
 		case http.MethodGet:
 			sayHello(w, r, message)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+	}
+}
+func secureHelloHandler(message string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			sayHelloSecurely(w, r, message)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -43,13 +55,36 @@ func sayHelloWithName(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func StartServer(port, message string) {
+func sayHelloSecurely(w http.ResponseWriter, r *http.Request, message string) {
+	if message == "" {
+		message = "Secure Hello World"
+	}
+	_, err := fmt.Fprintf(w, message)
+	if err != nil {
+		log.Panicln(err)
+		return
+	}
+}
+func StartServer(port, message string, secure ...bool) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/hello", helloHandler(message))
-	for killServer != true {
-		log.Println("Starting simpleServer...")
-		if err := http.ListenAndServe(port, mux); err != nil {
-			log.Panicln("Cannot start server rn")
+	runInSecureMode := secure[0]
+	if runInSecureMode != false {
+		// HTTPS simple server
+		mux.HandleFunc("/hello", secureHelloHandler(message))
+		for killServer != true {
+			log.Println("Starting secure server")
+			if err := http.ListenAndServeTLS(port, "./Certs/server.crt", "./Certs/server.key", mux); err != nil {
+				log.Panicln("Cannot start secure server: ", err)
+			}
+		}
+	} else {
+		// HTTP simple server
+		mux.HandleFunc("/hello", helloHandler(message))
+		for killServer != true {
+			log.Println("Starting simpleServer...")
+			if err := http.ListenAndServe(port, mux); err != nil {
+				log.Panicln("Cannot start server rn")
+			}
 		}
 	}
 }
