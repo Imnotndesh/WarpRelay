@@ -49,6 +49,20 @@ func StartProxy() {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 		proxies[endpoint.ProxyEndpoint] = proxy
+
+		proxy.ModifyResponse = func(resp *http.Response) error {
+			if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+				location, locErr := resp.Location()
+				if locErr == nil {
+					originalLocation := location.String()
+					newLocation := endpoint.ProxyEndpoint + location.Path
+					log.Printf("Rewriting redirect: %s -> %s", originalLocation, newLocation)
+					resp.Header.Set("Location", newLocation)
+				}
+			}
+			return nil
+		}
+
 		proxy.Director = func(req *http.Request) {
 			req.URL.Scheme = endpoint.ParsedUrl.Scheme
 			req.URL.Host = endpoint.ParsedUrl.Host

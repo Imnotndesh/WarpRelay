@@ -41,13 +41,8 @@ func secureHelloHandler(message string) http.HandlerFunc {
 	}
 }
 func sayHello(w http.ResponseWriter, r *http.Request, message string) {
-	if message == "" {
-		message = "Hello World"
-	}
-	_, err := w.Write([]byte(message))
-	if err != nil {
-		log.Println(err)
-	}
+	http.Redirect(w, r, "/new", http.StatusFound)
+	return
 }
 func sayHelloWithName(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
@@ -71,12 +66,29 @@ func sayHelloSecurely(w http.ResponseWriter, r *http.Request, message string) {
 		return
 	}
 }
+func movedHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			movedHere(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}
+}
+func movedHere(w http.ResponseWriter, r *http.Request) {
+	if _, err := fmt.Fprintf(w, "You ave been moved here"); err != nil {
+		log.Panicln(err)
+		return
+	}
+}
 func StartServer(port, message string, secure ...bool) {
 	mux := http.NewServeMux()
 	runInSecureMode := secure[0]
 	if runInSecureMode != false {
 		// HTTPS simple server
 		mux.HandleFunc("/secure-hello", secureHelloHandler(message))
+		mux.HandleFunc("/new", movedHandler())
 		for killServer != true {
 			log.Println("Starting secure server")
 			if err := http.ListenAndServeTLS(port, CertLocation, KeyLocation, mux); err != nil {
@@ -86,6 +98,7 @@ func StartServer(port, message string, secure ...bool) {
 	} else {
 		// HTTP simple server
 		mux.HandleFunc("/hello", helloHandler(message))
+		mux.HandleFunc("/new", movedHandler())
 		for killServer != true {
 			log.Println("Starting simpleServer...")
 			if err := http.ListenAndServe(port, mux); err != nil {
