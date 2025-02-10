@@ -21,8 +21,11 @@ type EndpointConfig struct {
 	ParsedUrl     *url.URL
 }
 type Content struct {
-	ProxyPort string           `yaml:"proxyPort"`
-	Endpoints []EndpointConfig `yaml:"endpoints"`
+	logsDirectory string           `yaml:"logDirectory"`
+	certPath      string           `yaml:"certPath"`
+	keyPath       string           `yaml:"keyPath"`
+	ProxyPort     string           `yaml:"proxyPort"`
+	Endpoints     []EndpointConfig `yaml:"endpoints"`
 }
 type ConfigParser struct {
 	ConfigLocation string
@@ -45,4 +48,10 @@ func (p *ConfigParser) GetProxyPort() string {
 }
 func (p *ConfigParser) GetEndpoints() []EndpointConfig {
 	return p.YamlContent.Endpoints
+}
+func (p *ConfigParser) GetCertInfo() (string, string) {
+	return p.YamlContent.certPath, p.YamlContent.keyPath
+}
+func (p *ConfigParser) GetLogsDirectory() string {
+	return p.YamlContent.logsDirectory
 }

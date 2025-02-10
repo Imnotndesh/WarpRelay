@@ -1,4 +1,6 @@
 proxyPort: "7080"
+certPath : ./Certs/server.crt
+keyPath: ./Certs/server.key
 endpoints:
   - backendUrl : http://localhost:9080
     proxyEndpoint : /sample

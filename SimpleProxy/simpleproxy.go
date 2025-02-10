@@ -9,46 +9,17 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
 const (
-	configDir      = "Config"
-	configLocation = "./Config/config.YAML"
+	ConfigDir      = "Config"
+	ConfigLocation = "./Config/config.YAML"
 	logsDir        = "Logs"
-	CertsDir       = "Certs"
 	CertLocation   = "./Certs/server.crt"
 	KeyLocation    = "./Certs/server.key"
 )
-
-func init() {
-	// Check if Config Dir exists
-	if _, err := os.Stat(configLocation); os.IsNotExist(err) {
-		if err = os.Mkdir(configDir, 0755); err != nil {
-			panic("Error making config directory")
-		}
-		panic("Config Not found..Please your config.YAML in the config directory")
-	}
-	// Check if Logs dir exists and init Logs
-	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
-		if err = os.Mkdir(logsDir, 0755); err != nil {
-			log.Fatalf("Failed to create logs directory: %s", err)
-		}
-	}
-	if _, err := os.Stat(CertsDir); os.IsNotExist(err) {
-		err = os.Mkdir(CertsDir, 0755)
-		if err != nil {
-			panic("Failed to create certs directory")
-		}
-		_, noCert := os.Stat(CertLocation)
-		_, noKey := os.Stat(KeyLocation)
-		if os.IsNotExist(noCert) || os.IsNotExist(noKey) {
-			panic("SSL Certificates needed to run server. please place the *.key and *.crt in the Certs directory")
-		}
-	}
-}
 
 var (
 	proxies = make(map[string]*httputil.ReverseProxy)
@@ -63,12 +34,20 @@ func SetupLogger() {
 		Compress:   true,
 	})
 }
-func StartProxy() {
+func StartProxy(customConfigPath string) {
 	fmt.Println("\n -> Logger Initialized in logs directory")
 	log.Println("Starting Reverse Proxy Server")
-	var err error
+	var (
+		err                           error
+		configPath, certPath, keyPath string
+	)
+	if customConfigPath != "" {
+		configPath = customConfigPath
+	} else {
+		configPath = ConfigLocation
+	}
 	parser := ConfigParser.ConfigParser{
-		ConfigLocation: configLocation,
+		ConfigLocation: configPath,
 	}
 	err = parser.ParseConfig()
 	if err != nil {
@@ -77,6 +56,11 @@ func StartProxy() {
 	}
 	// Port from YAML
 	port := parser.GetProxyPort()
+	certPath, keyPath = parser.GetCertInfo()
+	if certPath == "" || keyPath == "" {
+		certPath = CertLocation
+		keyPath = KeyLocation
+	}
 	// User endpoints from YAML
 	endpoints := parser.GetEndpoints()
 
@@ -130,7 +114,7 @@ func StartProxy() {
 	}
 	fmt.Println(" -> Running Server at port :" + port)
 	// Start reverse proxy server
-	err = http.ListenAndServeTLS(":"+port, CertLocation, KeyLocation, nil)
+	err = http.ListenAndServeTLS(":"+port, certPath, keyPath, nil)
 	if err != nil {
 		log.Panicln("Cannot start proxy:", err)
 	}
