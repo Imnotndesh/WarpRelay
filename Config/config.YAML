@@ -1,8 +1,8 @@
-proxyPort: "7080"
-certPath : /path/to/server.crt
-keyPath: /path/to/server.key
+proxyPort: "7080"   # Port at which proxy server will run
+certPath : /path/to/server.crt    # Location of SSL cert file
+keyPath: /path/to/server.key    # Location of SSL key file
 endpoints:
-  - backendUrl : http://localhost:9080
-    proxyEndpoint : /one
+  - backendUrl : http://localhost:9080    # IP:Port of your webserver
+    proxyEndpoint : /one    # Endpoint where above webserver is to be accessible from
   - backendUrl: https://localhost:9081
     proxyEndpoint: /two
