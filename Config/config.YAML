@@ -1,8 +1,8 @@
 proxyPort: "7080"
-certPath : ./Certs/server.crt
-keyPath: ./Certs/server.key
+certPath : /path/to/server.crt
+keyPath: /path/to/server.key
 endpoints:
   - backendUrl : http://localhost:9080
-    proxyEndpoint : /sample
+    proxyEndpoint : /one
   - backendUrl: https://localhost:9081
-    proxyEndpoint: /another
+    proxyEndpoint: /two

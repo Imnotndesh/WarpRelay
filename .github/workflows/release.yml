@@ -1,0 +1,33 @@
+name: Auto Release on Tag
+
+on:
+  push:
+    tags:
+      - "*"  # Runs on every tag push (e.g., v1.0.0, v1.2.3-beta)
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get tag name
+        id: get_tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ env.TAG_NAME }}"  # Use the tag as the release name
+          name: "Release ${{ env.TAG_NAME }}"
+          body: "Automated release for tag `${{ env.TAG_NAME }}`"
+          draft: false
+          prerelease: false
+          files: |
+            build/warp(linux)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
