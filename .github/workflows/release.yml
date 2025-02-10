@@ -28,6 +28,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            build/warp(linux)
+            "build/warp(linux)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
